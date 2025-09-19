@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createBrowserSupabaseClient } from "@/lib/client-utils";
-import { type Database } from "@/lib/schema";
+import type { Database } from "@/lib/schema"; // 👈 FIXED
 import { LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,7 +22,6 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export default function UserNav({ profile }: { profile: Profile }) {
   // Create Supabase client (for client components)
   const supabaseClient = createBrowserSupabaseClient();
-
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -64,10 +63,9 @@ export default function UserNav({ profile }: { profile: Profile }) {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        {/* Mark promise as purposefully dangling for clarity: https://github.com/typescript-eslint/typescript-eslint/issues/4619 */}
         <DropdownMenuItem
           onClick={() => {
-            void handleSignOut();
+            void handleSignOut(); // ✅ safe unawaited async
           }}
         >
           <LogOut className="mr-2 h-4 w-4" />

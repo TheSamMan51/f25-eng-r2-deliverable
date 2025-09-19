@@ -1,32 +1,34 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable @typescript-eslint/no-misused-promises */
-
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import type { Database } from "@/lib/schema";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { useState } from "react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
   const supabase = createClientComponentClient<Database>();
   const [username, setUsername] = useState(profile.display_name ?? "");
   const [bio, setBio] = useState(profile.biography ?? "");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    const { error } = await supabase
-      .from("profiles" as any) // 👈 allow any
-      .update({ biography: bio, display_name: username } as any) // 👈 allow any
-      .eq("id", profile.id);
+    setLoading(true);
+
+    const updates: ProfileUpdate = {
+      display_name: username,
+      biography: bio,
+    };
+
+    const { error } = await supabase.from("profiles").update(updates).eq("id", profile.id);
+
+    setLoading(false);
 
     if (error) {
       toast({
@@ -51,16 +53,18 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
       className="space-y-4"
     >
       <div>
-        <Label>Display Name</Label>
-        <Input value={username} onChange={(e) => setUsername(e.target.value)} />
+        <Label htmlFor="username">Display Name</Label>
+        <Input id="username" value={username} onChange={(e) => setUsername(e.target.value)} />
       </div>
 
       <div>
-        <Label>Biography</Label>
-        <Input value={bio} onChange={(e) => setBio(e.target.value)} />
+        <Label htmlFor="bio">Biography</Label>
+        <Textarea id="bio" rows={3} value={bio} onChange={(e) => setBio(e.target.value)} />
       </div>
 
-      <Button type="submit">Save Changes</Button>
+      <Button type="submit" disabled={loading}>
+        {loading ? "Saving..." : "Save Changes"}
+      </Button>
     </form>
   );
 }
