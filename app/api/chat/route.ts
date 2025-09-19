@@ -1,9 +1,14 @@
 import { generateResponse } from "@/lib/services/species-chat";
 import { NextResponse } from "next/server";
 
+// Define the expected request shape
+interface ChatRequest {
+  message: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = (await req.json()) as ChatRequest;
 
     if (!body?.message || typeof body.message !== "string") {
       return NextResponse.json({ error: "Invalid request body" }, { status: 400 });

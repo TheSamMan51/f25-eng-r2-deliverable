@@ -38,27 +38,29 @@ export default function SpeciesEditDialog({ open, onOpenChange, species }: Speci
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof updateSpeciesSchema>) => {
-    startTransition(async () => {
-      const response = await fetch(`/api/species/${species.id}`, {
-        method: "PUT",
-        body: JSON.stringify(values),
-      });
+  const onSubmit = (values: z.infer<typeof updateSpeciesSchema>) => {
+    startTransition(() => {
+      void (async () => {
+        const response = await fetch(`/api/species/${species.id}`, {
+          method: "PUT",
+          body: JSON.stringify(values),
+        });
 
-      if (response.ok) {
-        toast({
-          title: "Species updated",
-          description: `${values.scientific_name} has been updated.`,
-        });
-        onOpenChange(false);
-        router.refresh();
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update species.",
-          variant: "destructive",
-        });
-      }
+        if (response.ok) {
+          toast({
+            title: "Species updated",
+            description: `${values.scientific_name} has been updated.`,
+          });
+          onOpenChange(false);
+          router.refresh();
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to update species.",
+            variant: "destructive",
+          });
+        }
+      })();
     });
   };
 
@@ -69,7 +71,12 @@ export default function SpeciesEditDialog({ open, onOpenChange, species }: Speci
           <DialogTitle>Edit Species</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            void form.handleSubmit(onSubmit)(e); // ✅ wrapped in void
+          }}
+          className="space-y-4"
+        >
           <div className="grid gap-2">
             <Label>Scientific Name</Label>
             <Input {...form.register("scientific_name")} />
@@ -95,7 +102,7 @@ export default function SpeciesEditDialog({ open, onOpenChange, species }: Speci
             <Textarea rows={4} {...form.register("description")} />
           </div>
           <Button type="submit" disabled={isPending} className="w-full">
-            Save Changes
+            {isPending ? "Saving..." : "Save Changes"}
           </Button>
         </form>
       </DialogContent>

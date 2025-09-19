@@ -1,9 +1,12 @@
 import { Separator } from "@/components/ui/separator";
 import { TypographyH2 } from "@/components/ui/typography";
+import type { Database } from "@/lib/schema";
 import { createServerSupabaseClient } from "@/lib/server-utils";
 import { redirect } from "next/navigation";
 import AddSpeciesDialog from "./add-species-dialog";
 import SpeciesCard from "./species-card";
+
+type Species = Database["public"]["Tables"]["species"]["Row"];
 
 export default async function SpeciesList() {
   const supabase = createServerSupabaseClient();
@@ -17,7 +20,17 @@ export default async function SpeciesList() {
 
   const userId = session.user.id;
 
-  const { data: species } = await supabase.from("species").select("*").order("id", { ascending: false });
+  const {
+    data: species,
+    error,
+  }: {
+    data: Species[] | null;
+    error: Error | null;
+  } = await supabase.from("species").select("*").order("id", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching species:", error);
+  }
 
   return (
     <>

@@ -1,15 +1,18 @@
 /* eslint-disable */
 "use client";
-
 import { TypographyH2, TypographyP } from "@/components/ui/typography";
 import { useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
+
+interface ChatApiResponse {
+  response?: string;
+  error?: string;
+}
 
 export default function SpeciesChatbot() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [message, setMessage] = useState("");
   const [chatLog, setChatLog] = useState<{ role: "user" | "bot"; content: string }[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleInput = () => {
     const textarea = textareaRef.current;
@@ -22,26 +25,28 @@ export default function SpeciesChatbot() {
   const handleSubmit = async () => {
     if (!message.trim()) return;
 
-    const userMessage = message.trim();
+    // Add user message to log
+    setChatLog((prev) => [...prev, { role: "user", content: message }]);
     setMessage("");
-    setChatLog((prev) => [...prev, { role: "user", content: userMessage }]);
-    setIsLoading(true);
 
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message }),
       });
 
-      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      // ✅ Cast response JSON to our type
+      const data = (await res.json()) as ChatApiResponse;
 
       setChatLog((prev) => [...prev, { role: "bot", content: data.response ?? "⚠️ No response from chatbot." }]);
     } catch (err) {
       console.error("Chatbot request failed:", err);
       setChatLog((prev) => [...prev, { role: "bot", content: "⚠️ Failed to contact the chatbot service." }]);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -51,13 +56,13 @@ export default function SpeciesChatbot() {
       <div className="mt-4 flex gap-4">
         <div className="mt-4 rounded-lg bg-foreground p-4 text-background">
           <TypographyP>
-            The Species Chatbot is specialized to answer questions about animals. It can provide information on
-            habitats, diets, conservation status, speed, and other relevant details. If you ask something unrelated, it
-            will politely remind you that it only handles species-related queries.
+            The Species Chatbot is a feature specialized to answer questions about animals. It can provide information
+            on species’ habitat, diet, conservation status, and other relevant details. Any unrelated prompts will
+            return a message saying it only handles species-related queries.
           </TypographyP>
           <TypographyP>
-            To use the Species Chatbot, type your question in the input field below and press enter. The chatbot will
-            respond with the best available information.
+            To use the chatbot, type your question in the input field below and hit enter. The chatbot will respond with
+            the best available information.
           </TypographyP>
         </div>
       </div>
@@ -83,16 +88,9 @@ export default function SpeciesChatbot() {
               </div>
             ))
           )}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl border border-border bg-foreground p-3 text-sm text-primary-foreground">
-                Thinking...
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Textarea and submission */}
+        {/* Textarea + submit */}
         <div className="mt-4 flex flex-col items-end">
           <textarea
             ref={textareaRef}
@@ -105,11 +103,10 @@ export default function SpeciesChatbot() {
           />
           <button
             type="button"
-            onClick={() => void handleSubmit()}
-            disabled={isLoading}
-            className="mt-2 rounded bg-primary px-4 py-2 text-background transition hover:opacity-90 disabled:opacity-50"
+            onClick={() => void handleSubmit()} // ✅ properly voided
+            className="mt-2 rounded bg-primary px-4 py-2 text-background transition hover:opacity-90"
           >
-            {isLoading ? "Sending..." : "Enter"}
+            Enter
           </button>
         </div>
       </div>

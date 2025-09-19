@@ -14,7 +14,7 @@ interface SpeciesDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   species: Species;
-  userId: string; // 👈 new prop
+  userId: string;
 }
 
 export default function SpeciesDetailDialog({ open, onOpenChange, species, userId }: SpeciesDetailDialogProps) {
@@ -26,24 +26,24 @@ export default function SpeciesDetailDialog({ open, onOpenChange, species, userI
   useEffect(() => {
     if (!species.id) return;
 
-    const fetchComments = async () => {
-      const { data, error } = await supabase
+    void (async () => {
+      const { data, error }: { data: Comment[] | null; error: unknown } = await supabase
         .from("comments")
         .select("*")
         .eq("species_id", species.id)
         .order("created_at", { ascending: false });
 
-      if (!error && data) setComments(data);
-    };
-
-    fetchComments();
+      if (!error && data) {
+        setComments(data);
+      }
+    })();
   }, [supabase, species.id]);
 
   // Add comment
-  const handleAddComment = async () => {
+  const handleAddComment = async (): Promise<void> => {
     if (!newComment.trim() || !userId) return;
 
-    const { data, error } = await supabase
+    const { data, error }: { data: Comment | null; error: unknown } = await supabase
       .from("comments")
       .insert([{ content: newComment.trim(), user_id: userId, species_id: species.id }])
       .select()
@@ -56,8 +56,8 @@ export default function SpeciesDetailDialog({ open, onOpenChange, species, userI
   };
 
   // Delete comment
-  const handleDeleteComment = async (id: string) => {
-    const { error } = await supabase.from("comments").delete().eq("id", id);
+  const handleDeleteComment = async (id: string): Promise<void> => {
+    const { error }: { error: unknown } = await supabase.from("comments").delete().eq("id", id);
 
     if (!error) {
       setComments((prev) => prev.filter((c) => c.id !== id));
@@ -97,7 +97,12 @@ export default function SpeciesDetailDialog({ open, onOpenChange, species, userI
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
             />
-            <Button onClick={handleAddComment} disabled={!newComment.trim()}>
+            <Button
+              onClick={() => {
+                void handleAddComment(); // ✅ marked as intentional
+              }}
+              disabled={!newComment.trim()}
+            >
               Post
             </Button>
           </div>
@@ -111,7 +116,13 @@ export default function SpeciesDetailDialog({ open, onOpenChange, species, userI
                 <div key={comment.id} className="flex items-start justify-between border-b pb-2">
                   <p className="text-sm">{comment.content}</p>
                   {comment.user_id === userId && (
-                    <Button variant="destructive" size="sm" onClick={() => handleDeleteComment(comment.id)}>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        void handleDeleteComment(comment.id); // ✅ marked as intentional
+                      }}
+                    >
                       Delete
                     </Button>
                   )}
